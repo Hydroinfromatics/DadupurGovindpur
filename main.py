@@ -5,6 +5,7 @@ import plotly.graph_objs as go
 from data_process import process_data
 from get_data import fetch_data_from_api
 import traceback
+import os
 
 # Initialize the Dash app
 app = dash.Dash(__name__)
@@ -121,4 +122,9 @@ def update_dashboard(n):
 
 # Run the app
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    # Get port and debug mode from environment variables
+    port = int(os.environ.get('PORT', 8080))
+    debug = os.environ.get('DEBUG', 'False').lower() == 'true'
+
+    # Run the app
+    app.run_server(host='0.0.0.0', port=port, debug=debug)
