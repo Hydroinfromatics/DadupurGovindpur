@@ -28,7 +28,7 @@ header = html.Div([
 footer = html.Footer([
     html.Div([
         html.P('Dashboard - Powered by ICCW  ', style={'textAlign': 'center', 'fontSize': '12px'}),
-        html.P('Technology Implementation Partner - EyeNet Aqua', style={'textAlign': 'center', 'fontSize': '12px'}),,
+        html.P('Technology Implementation Partner - EyeNet Aqua', style={'textAlign': 'center', 'fontSize': '12px'}),
     ], style={'padding': '10px', 'backgroundColor': '#f0f0f0', 'marginTop': '20px'})
 ])
 
