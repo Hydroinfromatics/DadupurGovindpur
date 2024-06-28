@@ -118,7 +118,7 @@ header = html.Div([
         html.Img(src="assets/logo.png", style={'height': '80px', 'width': 'auto'}),
         html.Div([
             html.H1("Water Monitoring Unit", style={'text-align': 'center', 'color': '#010738', 'margin': '0'}),
-            html.H3("Dadpur", style={'text-align': 'center', 'color': '#010738', 'margin': '8px 0 0 0'}),
+            html.H3("Dadupur", style={'text-align': 'center', 'color': '#010738', 'margin': '8px 0 0 0'}),
         ]),
         html.Div([
             html.Img(src="assets/itc.png", style={'height': '80px', 'width': 'auto', 'marginRight': '10px'}),
