@@ -6,8 +6,10 @@ from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
 import pandas as pd
 from datetime import datetime, timedelta
-import leafmap.foliumap as leafmap
 import geopandas as gpd
+import folium
+from folium.plugins import MarkerCluster
+from branca.colormap import LinearColormap
 from functools import lru_cache
 
 # Import custom modules
@@ -34,7 +36,6 @@ TIME_DURATIONS = {
     '1 Week': timedelta(weeks=1)
 }
 
-# Units for parameters
 UNITS = {
     "pH": "",
     "TDS": "ppm",
@@ -45,7 +46,7 @@ UNITS = {
 
 # Initialize Flask
 server = Flask(__name__)
-server.config['SECRET_KEY'] = os.urandom(24)
+server.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(24))
 
 # Initialize Dash
 app = dash.Dash(__name__, server=server, url_base_pathname='/dashboard/')
@@ -56,26 +57,103 @@ def load_geojson():
     geojson_path = "Dadapur.geojson"
     return gpd.read_file(geojson_path)
 
-gdf = load_geojson()
+# Load and process Excel data
+@lru_cache(maxsize=None)
+def load_excel_data():
+    df = pd.read_excel('BOTH_WQ.xlsx', sheet_name="Dadupur")
+    return gpd.GeoDataFrame(
+        df, geometry=gpd.points_from_xy(df.Longitude, df.Latitude), crs="EPSG:4326"
+    )
 
-# Create map
+gdf = load_geojson()
+excel_gdf = load_excel_data()
+
+
 def create_map():
+    # Convert to EPSG:4326 once
+    excel_gdf_4326 = excel_gdf.to_crs(epsg=4326)
     
-    m = leafmap.Map(center=[gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()], zoom=11)
-    m.add_gdf(
+    # Calculate map center
+    map_center = [excel_gdf_4326.geometry.y.mean(), excel_gdf_4326.geometry.x.mean()]
+    m = folium.Map(location=map_center, zoom_start=12)
+
+    # Create colormaps
+    colormap_tds = LinearColormap(
+        colors=['green', 'yellow', 'red'],
+        vmin=excel_gdf_4326['Total Dissolved Solids (TDS)'].min(),
+        vmax=excel_gdf_4326['Total Dissolved Solids (TDS)'].max(),
+        caption='Total Dissolved Solids (TDS)'
+    )
+    
+    colormap_ph = LinearColormap(
+        colors=['red', 'yellow', 'green'],
+        vmin=excel_gdf_4326['pH'].min(),
+        vmax=excel_gdf_4326['pH'].max(),
+        caption='Source pH'
+    )
+
+    # Add colormaps to the map
+    colormap_tds.add_to(m)
+    #colormap_ph.add_to(m)
+
+    # Create marker clusters
+    marker_cluster_tds = MarkerCluster(name="TDS Data").add_to(m)
+    marker_cluster_ph = MarkerCluster(name="pH Data").add_to(m)
+
+    # Function to create popup content
+    def create_popup_content(row):
+        return f"""
+        Village: {row['Village']}<br>
+        pH: {row['pH']}<br>
+        TDS: {row['Total Dissolved Solids (TDS)']} mg/L<br>
+        FRC: {row['Free Residual Chlorine (FRC)']} mg/L<br>
+        Altitude: {row['Altitude']} m<br>
+        Pressure: {row['Pressure']} (bar)<br>
+        Tap Flow Rate: {row['Tap Flow Rate']} (m3)<br>
+        """
+
+    # Add markers for each point
+    for idx, row in excel_gdf_4326.iterrows():
+        # TDS marker
+        folium.CircleMarker(
+            location=[row.geometry.y, row.geometry.x],
+            radius=8,
+            popup=folium.Popup(create_popup_content(row), max_width=300),
+            tooltip=row['Village'],
+            color='black',
+            fillColor=colormap_tds(row['Total Dissolved Solids (TDS)']),
+            fillOpacity=0.7
+        ).add_to(marker_cluster_tds)
+
+        # pH marker
+        folium.CircleMarker(
+            location=[row.geometry.y, row.geometry.x],
+            radius=8,
+            popup=folium.Popup(create_popup_content(row), max_width=300),
+            tooltip=row['Village'],
+            color='black',
+            fillColor=colormap_ph(row['pH']),
+            fillOpacity=0.7
+        ).add_to(marker_cluster_ph)
+
+    # Add Dadupur GeoJSON
+    folium.GeoJson(
         gdf,
-        layer_name="Dadupur",
-        zoom_to_layer=False,
-        info_mode='on_click',
+        name="Dadupur",
         style_function=lambda feature: {
             'fillColor': 'blue',
             'color': 'black',
             'weight': 2,
-            'fillOpacity': 0.7
-        }
-    )
-    m.add_layer_control()
-    return m.to_html()
+            'fillOpacity': 0.1
+        },
+        tooltip=folium.GeoJsonTooltip(fields=['Name'], aliases=['Name: '])
+    ).add_to(m)
+
+    # Add layer control
+    folium.LayerControl().add_to(m)
+
+    return m
+
 
 # Flask routes
 @server.route('/')
@@ -114,7 +192,7 @@ def create_footer():
             html.P('Dashboard - Powered by ICCW', style={'fontSize': '12px', 'margin': '5px 0'}),
             html.P('Technology Implementation Partner - EyeNet Aqua', style={'fontSize': '12px', 'margin': '5px 0'}),
         ], style={'maxWidth': '1200px', 'margin': '0 auto', 'padding': '0 20px', 'textAlign': 'center'})
-    ], style={'width': '100%', 'backgroundColor': '#f9f9f9', 'padding': '20px 0', 'marginTop': '20px','boxShadow': '0 2px 5px rgba(0,0,0,0.1)'})
+    ], style={'width': '100%', 'backgroundColor': '#f9f9f9', 'padding': '20px 0', 'marginTop': '20px', 'boxShadow': '0 -2px 5px rgba(0,0,0,0.1)'})
 
 # Dash layout
 app.layout = html.Div([
@@ -123,21 +201,21 @@ app.layout = html.Div([
         html.Div(id='error-message', style={'color': '#e74c3c', 'textAlign': 'center', 'margin': '10px 0'}),
         html.Div([html.Div(id=f'source-{param.lower()}', className='value-box') for param in ['pH', 'TDS', 'FRC', 'pressure', 'flow']],
                  style={
-        'display': 'flex',
-        'flexWrap': 'wrap',
-        "margin": "15px",
-        'justifyContent': 'space-around',
-        'alignItems': 'center',
-        'margin': '20px 0',
-        'padding': '20px',
-        'backgroundColor': '#ffffff',
-        "font-weight": "bold",
-        "font-size": "30px",
-        "color": "black",
-        "text-align": "center",
-        "box-shadow": "0px 4px 8px rgba(0, 0, 0, 0.1)",
-        'border': '1px solid #7ec1fd',
-        'borderRadius': '10px'}),
+                     'display': 'flex',
+                     'flexWrap': 'wrap',
+                     'justifyContent': 'space-around',
+                     'alignItems': 'center',
+                     'margin': '20px 0',
+                     'padding': '20px',
+                     'backgroundColor': '#ffffff',
+                     'fontWeight': 'bold',
+                     'fontSize': '30px',
+                     'color': 'black',
+                     'textAlign': 'center',
+                     'boxShadow': '0px 4px 8px rgba(0, 0, 0, 0.1)',
+                     'border': '1px solid #7ec1fd',
+                     'borderRadius': '10px'
+                 }),
         html.Div([
             html.Div([
                 html.Div([
@@ -155,7 +233,8 @@ app.layout = html.Div([
             ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top'}),
             html.Div([
                 html.H3("Dadupur, Haridwar Map", style={'textAlign': 'center'}),
-                html.Iframe(srcDoc=create_map(), style={'width': '100%', 'height': '600px', 'border': '1px solid #ddd', 'borderRadius': '5px'})
+                html.Iframe(id='map-iframe', srcDoc=create_map().get_root().render(), 
+                            style={'width': '100%', 'height': '600px', 'border': '1px solid #ddd', 'borderRadius': '5px'})
             ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top', 'marginLeft': '4%'})
         ], style={'display': 'flex', 'justifyContent': 'space-between'}),
         html.Div([
@@ -206,9 +285,14 @@ def update_dashboard(n, selected_column, selected_duration):
         
         fig.update_layout(
             title=f'{selected_column} Vs {selected_duration}',
-            xaxis_title='Time (hrs)', yaxis_title=f'{selected_column} ({UNITS[selected_column.split("_")[1]]})', yaxis=dict(range=[y_min, y_max]),
-            height=600, margin=dict(l=50, r=50, t=50, b=50),
-            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(size=14)
+            xaxis_title='Time (hrs)', 
+            yaxis_title=f'{selected_column} ({UNITS[selected_column.split("_")[1]]})', 
+            yaxis=dict(range=[y_min, y_max]),
+            height=600, 
+            margin=dict(l=50, r=50, t=50, b=50),
+            paper_bgcolor='rgba(0,0,0,0)', 
+            plot_bgcolor='rgba(0,0,0,0)', 
+            font=dict(size=14)
         )
 
         latest = df.iloc[-1]
