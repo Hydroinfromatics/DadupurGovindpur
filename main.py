@@ -98,7 +98,6 @@ def create_map():
 
     # Create marker clusters
     marker_cluster_tds = MarkerCluster(name="TDS Data").add_to(m)
-    marker_cluster_ph = MarkerCluster(name="pH Data").add_to(m)
 
     # Function to create popup content
     def create_popup_content(row):
@@ -124,17 +123,6 @@ def create_map():
             fillColor=colormap_tds(row['Total Dissolved Solids (TDS)']),
             fillOpacity=0.7
         ).add_to(marker_cluster_tds)
-
-        # pH marker
-        folium.CircleMarker(
-            location=[row.geometry.y, row.geometry.x],
-            radius=8,
-            popup=folium.Popup(create_popup_content(row), max_width=300),
-            tooltip=row['Village'],
-            color='black',
-            fillColor=colormap_ph(row['pH']),
-            fillOpacity=0.7
-        ).add_to(marker_cluster_ph)
 
     # Add Dadupur GeoJSON
     folium.GeoJson(
