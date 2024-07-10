@@ -68,7 +68,6 @@ def load_excel_data():
 gdf = load_geojson()
 excel_gdf = load_excel_data()
 
-
 def create_map():
     # Convert to EPSG:4326 once
     excel_gdf_4326 = excel_gdf.to_crs(epsg=4326)
@@ -76,7 +75,7 @@ def create_map():
     # Calculate map center
     map_center = [excel_gdf_4326.geometry.y.mean(), excel_gdf_4326.geometry.x.mean()]
     m = folium.Map(location=map_center, zoom_start=12)
-
+    
     # Create colormaps
     colormap_tds = LinearColormap(
         colors=['green', 'yellow', 'red'],
@@ -85,20 +84,12 @@ def create_map():
         caption='Total Dissolved Solids (TDS)'
     )
     
-    colormap_ph = LinearColormap(
-        colors=['red', 'yellow', 'green'],
-        vmin=excel_gdf_4326['pH'].min(),
-        vmax=excel_gdf_4326['pH'].max(),
-        caption='Source pH'
-    )
-
     # Add colormaps to the map
     colormap_tds.add_to(m)
-    #colormap_ph.add_to(m)
-
+    
     # Create marker clusters
     marker_cluster_tds = MarkerCluster(name="TDS Data").add_to(m)
-
+    
     # Function to create popup content
     def create_popup_content(row):
         return f"""
@@ -110,7 +101,7 @@ def create_map():
         Pressure: {row['Pressure']} (bar)<br>
         Tap Flow Rate: {row['Tap Flow Rate']} (m3)<br>
         """
-
+    
     # Add markers for each point
     for idx, row in excel_gdf_4326.iterrows():
         # TDS marker
@@ -123,7 +114,7 @@ def create_map():
             fillColor=colormap_tds(row['Total Dissolved Solids (TDS)']),
             fillOpacity=0.7
         ).add_to(marker_cluster_tds)
-
+    
     # Add Dadupur GeoJSON
     folium.GeoJson(
         gdf,
@@ -136,12 +127,11 @@ def create_map():
         },
         tooltip=folium.GeoJsonTooltip(fields=['Name'], aliases=['Name: '])
     ).add_to(m)
-
+    
     # Add layer control
     folium.LayerControl().add_to(m)
-
+    
     return m
-
 
 # Flask routes
 @server.route('/')
