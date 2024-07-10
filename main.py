@@ -84,15 +84,6 @@ def create_map():
         caption='Total Dissolved Solids (TDS)'
     )
     
-    # Create TDS color mapping
-    tds_min = excel_gdf_4326['Total Dissolved Solids (TDS)'].min()
-    tds_max = excel_gdf_4326['Total Dissolved Solids (TDS)'].max()
-    tds_color_map = {
-        (tds_min, tds_min + (tds_max - tds_min) * 0.33): 'green',
-        (tds_min + (tds_max - tds_min) * 0.33, tds_min + (tds_max - tds_min) * 0.66): 'yellow',
-        (tds_min + (tds_max - tds_min) * 0.66, tds_max): 'red'
-    }
-    
     # Create marker cluster
     marker_cluster_tds = MarkerCluster(name="TDS Data").add_to(m)
     
@@ -113,15 +104,16 @@ def create_map():
         # Determine the fill color based on the TDS value
         fill_color = colormap_tds(row['Total Dissolved Solids (TDS)'])
         
-        # TDS marker
+        # TDS marker (now a small dot)
         folium.CircleMarker(
             location=[row.geometry.y, row.geometry.x],
-            radius=8,
+            radius=3,  # Small radius for dot-like appearance
             popup=folium.Popup(create_popup_content(row), max_width=300),
             tooltip=row['Village'],
-            color='black',
+            color=fill_color,
             fillColor=fill_color,
-            fillOpacity=0.7
+            fillOpacity=1,
+            weight=2
         ).add_to(marker_cluster_tds)
     
     # Add Dadupur GeoJSON
