@@ -1,7 +1,7 @@
 import os
 from flask import Flask, request, render_template, redirect, url_for
-import dashboard
-from dashboard import dcc, html, dash_table
+import dash
+from dash import dcc, html, dash_table
 from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
 import pandas as pd
@@ -111,11 +111,7 @@ def create_map():
     # Add markers for each point
     for idx, row in excel_gdf_4326.iterrows():
         # Determine the fill color based on the TDS value
-        fill_color = 'green'  # Default color
-        for tds_range, color in tds_color_map.items():
-            if tds_range[0] <= row['Total Dissolved Solids (TDS)'] < tds_range[1]:
-                fill_color = color
-                break
+        fill_color = colormap_tds(row['Total Dissolved Solids (TDS)'])
         
         # TDS marker
         folium.CircleMarker(
@@ -143,7 +139,7 @@ def create_map():
     
     # Add layer control and colormap to the map
     folium.LayerControl().add_to(m)
-    colormap_tds.add_to(m)
+    colormap_tds.add_to(m)  # This line adds the legend to the map
     
     return m
 
