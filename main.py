@@ -76,7 +76,7 @@ def create_map():
     map_center = [excel_gdf_4326.geometry.y.mean(), excel_gdf_4326.geometry.x.mean()]
     m = folium.Map(location=map_center, zoom_start=12)
     
-    # Create colormaps
+    # Create colormap
     colormap_tds = LinearColormap(
         colors=['green', 'yellow', 'red'],
         vmin=excel_gdf_4326['Total Dissolved Solids (TDS)'].min(),
@@ -84,10 +84,16 @@ def create_map():
         caption='Total Dissolved Solids (TDS)'
     )
     
-    # Add colormaps to the map
-    colormap_tds.add_to(m)
+    # Create TDS color mapping
+    tds_min = excel_gdf_4326['Total Dissolved Solids (TDS)'].min()
+    tds_max = excel_gdf_4326['Total Dissolved Solids (TDS)'].max()
+    tds_color_map = {
+        (tds_min, tds_min + (tds_max - tds_min) * 0.33): 'green',
+        (tds_min + (tds_max - tds_min) * 0.33, tds_min + (tds_max - tds_min) * 0.66): 'yellow',
+        (tds_min + (tds_max - tds_min) * 0.66, tds_max): 'red'
+    }
     
-    # Create marker clusters
+    # Create marker cluster
     marker_cluster_tds = MarkerCluster(name="TDS Data").add_to(m)
     
     # Function to create popup content
@@ -104,6 +110,13 @@ def create_map():
     
     # Add markers for each point
     for idx, row in excel_gdf_4326.iterrows():
+        # Determine the fill color based on the TDS value
+        fill_color = 'green'  # Default color
+        for tds_range, color in tds_color_map.items():
+            if tds_range[0] <= row['Total Dissolved Solids (TDS)'] < tds_range[1]:
+                fill_color = color
+                break
+        
         # TDS marker
         folium.CircleMarker(
             location=[row.geometry.y, row.geometry.x],
@@ -111,7 +124,7 @@ def create_map():
             popup=folium.Popup(create_popup_content(row), max_width=300),
             tooltip=row['Village'],
             color='black',
-            fillColor=colormap_tds(row['Total Dissolved Solids (TDS)']),
+            fillColor=fill_color,
             fillOpacity=0.7
         ).add_to(marker_cluster_tds)
     
@@ -128,8 +141,9 @@ def create_map():
         tooltip=folium.GeoJsonTooltip(fields=['Name'], aliases=['Name: '])
     ).add_to(m)
     
-    # Add layer control
+    # Add layer control and colormap to the map
     folium.LayerControl().add_to(m)
+    colormap_tds.add_to(m)
     
     return m
 
