@@ -1,7 +1,7 @@
 import os
 from flask import Flask, request, render_template, redirect, url_for
-import dash
-from dash import dcc, html, dash_table
+import dashboard
+from dashboard import dcc, html, dash_table
 from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
 import pandas as pd
