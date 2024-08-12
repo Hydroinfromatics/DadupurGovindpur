@@ -462,11 +462,11 @@ def fetch_historical_data(n_clicks, start_date, end_date):
 def update_table(data):
     return data or []
 
-@app.callback(
+'''@app.callback(
     Output("download-dataframe-csv", "data"),
     [Input("download-csv-button", "n_clicks")],
     [State('historical-data-store', 'data')]
-)
+)'''
 def download_csv(n_clicks, data):
     if n_clicks > 0 and data:
         df = pd.DataFrame(data)
