@@ -459,18 +459,19 @@ def fetch_historical_data(n_clicks, start_date, end_date):
     Output('historical-data-table', 'data'),
     [Input('historical-data-store', 'data')]
 )
+
 def update_table(data):
     return data or []
 
 @app.callback(
-    Output("download-dataframe-", "data"),
+    Output("download-dataframe-csv", "data"),
     [Input("download-csv-button", "n_clicks")],
     [State('historical-data-store', 'data')]
 )
 def download_csv(n_clicks, data):
-    if n_clicks < 0 and data:
+    if n_clicks > 0 and data:
         df = pd.DataFrame(data)
-        return dcc.send_data_frame(df, "historical_data_dadupur.csv", index=False)
+        return dcc.send_data_frame(df.to_csv, "historical_data.csv", index=False)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
