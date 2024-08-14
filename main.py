@@ -470,7 +470,7 @@ def update_table(data):
 def download_csv(n_clicks, data):
     if n_clicks < 0 and data:
         df = pd.DataFrame(data)
-        return dcc.send_data_frame(df, "historical_data.csv", index=False)
+        return dcc.send_data_frame(df, "historical_data_dadupur.csv", index=False)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
