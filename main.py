@@ -120,7 +120,7 @@ app = dash.Dash(__name__, server=server, url_base_pathname='/dashboard/')
 # Load GeoJSON data
 @lru_cache(maxsize=None)
 def load_geojson():
-    geojson_path = r"Hydroinfromatics/dadpur/Dadapur.geojson"
+    geojson_path = "Dadapur.geojson"
     return gpd.read_file(geojson_path)
 
 # Load and process Excel data
