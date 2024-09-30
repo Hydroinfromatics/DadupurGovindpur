@@ -18,7 +18,7 @@ from functools import lru_cache
 from data_process import process_data
 from get_data import fetch_data_from_api
 # Configuration
-API_URL = "https://mongodb-api-hmeu.onrender.com"
+API_URL = "https://database-mango.onrender.com"#"https://mongodb-api-hmeu.onrender.com"
 COLUMNS = ["source_pH", "source_TDS", "source_FRC", "source_pressure", "source_flow"]
 Y_RANGES = {
     "source_pH": [7, 10],
